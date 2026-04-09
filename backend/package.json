@@ -1,0 +1,21 @@
+{
+  "name": "backend",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.10.1",
+    "drizzle-orm": "^0.45.2",
+    "hono": "^4.2.7",
+    "postgres": "^3.4.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.7",
+    "drizzle-kit": "^0.31.10",
+    "tsx": "^4.7.2",
+    "typescript": "^5.4.5"
+  }
+}

@@ -1,0 +1,47 @@
+services:
+  # 1. データベース (PostgreSQL)
+  db:
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: conduit_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  # 2. バックエンド (Hono + Drizzle)
+  backend:
+    build:
+      context: .
+      dockerfile: backend.Dockerfile
+    ports:
+      - "5001:5000"
+    environment:
+      DATABASE_URL: "postgres://user:password@db:5432/conduit_db"
+    volumes:
+      - ./backend:/app/backend
+      - /app/backend/node_modules
+    depends_on:
+      - db
+
+  # 3. フロントエンド (React + Vite)
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend.Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://localhost:5001
+    volumes:
+      - ./frontend:/app/frontend
+      - /app/frontend/node_modules
+    depends_on:
+      - backend
+
+# 全サービスで共有するボリュームの定義（一番最後に1回だけ書く）
+volumes:
+  db-data:

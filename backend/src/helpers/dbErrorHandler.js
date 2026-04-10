@@ -1,15 +1,15 @@
 function dbErrorHandler(error,c) {
   const status = error.cause.code;
-  let message = '管理者にお問い合わせください。'
+  let message = 'Please contact the administrator.'
   if (status){
     if (status.startsWith('23')){
-      message = '入力内容を確認してください。'
+      message = 'Please check your input.'
     }
     if (status.startsWith('42')){
-      message = '障害が発生しました。管理者にお問い合わせください。'
+      message = 'A system error has occurred. Please contact your administrator.'
     }
     if (status.startsWith('08')){
-      message = 'ネットワークが不安定です。管理者にお問い合わせください。'
+      message = 'The network is unstable. Please contact your administrator.'
     }
   }
   const resBody = {errors:{body:[message]}};

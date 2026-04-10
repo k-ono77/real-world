@@ -19,6 +19,8 @@ services:
       dockerfile: backend.Dockerfile
     ports:
       - "5001:5000"
+    env_file:
+      - .env
     environment:
       DATABASE_URL: "postgres://user:password@db:5432/conduit_db"
     volumes:

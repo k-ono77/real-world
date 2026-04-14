@@ -1,4 +1,4 @@
-function dbErrorHandler(error,c) {
+export function dbErrorHandler(error,c) {
   const status = error.cause.code;
   let message = 'Please contact the administrator.'
   if (status){
@@ -16,4 +16,9 @@ function dbErrorHandler(error,c) {
   return c.json(resBody, 422);
 }
 
-export default dbErrorHandler;
+const dbHelper = {
+  dbErrorHandler
+};
+
+
+export default dbHelper;

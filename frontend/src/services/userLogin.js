@@ -10,7 +10,7 @@ async function userLogin({ email, password }) {
     });
 
     const { user } = data;
-    const headers = { Authorization: `Token ${user.token}` };
+    const headers = { Authorization: user.token};
 
     const loggedIn = { headers, isAuth: true, loggedUser: user };
 

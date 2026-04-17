@@ -10,7 +10,9 @@
     "@hono/node-server": "^1.10.1",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.2.7",
-    "postgres": "^3.4.4"
+    "nanoid": "^5.1.7",
+    "postgres": "^3.4.4",
+    "slugify": "^1.6.9"
   },
   "devDependencies": {
     "@types/node": "^20.12.7",

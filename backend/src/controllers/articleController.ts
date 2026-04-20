@@ -4,19 +4,19 @@ import { eq, and, sql } from 'drizzle-orm';
 import type { Context } from 'hono';
 import slugify from 'slugify';
 import { nanoid } from 'nanoid';
-import { createPayloade } from '../helpers/commonHelper.js';
+import { createPayloade, debagLog } from '../helpers/commonHelper.js';
 import { dbErrorHandler } from '../helpers/dbHelper.js';
 import { InferSelectModel,InferInsertModel } from 'drizzle-orm';
 
 export type Article = InferSelectModel<typeof articles>;
 export type NewArticle = InferInsertModel<typeof articles>;
+export interface User {
+  username: string;
+  bio: string;
+  image: string;
+  following: boolean;
+};
 export const createArticle = async (c: Context) =>{
-  type Article = {
-    title: string;
-    description: string;
-    body: string;
-    taglist: string[];
-  };
   type RequestBody = {
     article: Article;
   };
@@ -88,5 +88,40 @@ export const createArticle = async (c: Context) =>{
     return c.json(res)
   }catch(e){
     dbErrorHandler(e,c);
+  }
+}
+
+export const getArticle = async (c : Context) => {
+  const slug: string | undefined = c.req.param('slug');
+  const headers :string | undefined = c.req.header('authorization');
+  try{
+    const [article] : Article = await db.select().from(articles).where(eq(articles.slug,slug));
+    let tagList = await db.select().from(articleTags).where(eq(articleTags.articleId,Number(article.id)));
+    tagList = tagList.map((obj:any) =>{
+      return obj.tagName;
+    });
+    const [userInfo] : User[] = await db.select().from(users).where(eq(users.id,article.authorId)); 
+    const res = {
+      article:{
+        slug : article.slug,
+        title : article.title,
+        description : article.description,
+        body : article.body,
+        tagList: tagList,
+        createdAt: article.createdAt,
+        updatedAt: article.updatedAt,
+        favorited: false,
+        favoritesCount:0,
+        author:{
+          username: userInfo.username,
+          bio: userInfo.bio,
+          image: userInfo.image,
+          following: false
+        }
+      }
+    }
+    return c.json(res);
+  }catch(e){
+    console.log(e);
   }
 }

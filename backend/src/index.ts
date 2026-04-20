@@ -13,7 +13,7 @@ app.get('/', (c) => {
 // siginup, login
 app.route('/api/users',authRoutes)
 
-// setting, 
+// setting
 app.route('/api/user',userRoutes)
 
 // articles 

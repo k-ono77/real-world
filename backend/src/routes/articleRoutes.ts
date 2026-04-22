@@ -5,6 +5,8 @@ const router = new Hono();
 
 router.post('/', articleController.createArticle);
 
+router.get('/', articleController.getArticles);
+
 router.get('/:slug', articleController.getArticle);
 
 export default router;

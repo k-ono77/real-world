@@ -1,6 +1,6 @@
 import { db } from '../db/index.ts'; 
-import { users, articles, articleTags, tags } from '../db/schema.ts';
-import { eq, and, sql } from 'drizzle-orm';
+import { users, articles, articleTags, tags, articles } from '../db/schema.ts';
+import { leftJoin, desc, eq, and, sql } from 'drizzle-orm';
 import type { Context } from 'hono';
 import slugify from 'slugify';
 import { nanoid } from 'nanoid';
@@ -10,6 +10,7 @@ import { InferSelectModel,InferInsertModel } from 'drizzle-orm';
 
 export type Article = InferSelectModel<typeof articles>;
 export type NewArticle = InferInsertModel<typeof articles>;
+export type Tag = InferInsertModel<typeof tags>
 export interface User {
   username: string;
   bio: string;
@@ -120,6 +121,53 @@ export const getArticle = async (c : Context) => {
         }
       }
     }
+    return c.json(res);
+  }catch(e){
+    console.log(e);
+  }
+}
+export const getArticles = async (c : Context) => {
+  const limit : number = Number(c.req.query('limit'));
+  const offset : number = Number(c.req.query('offset'));
+  try{
+    const latestArticles : Article[] = await db.query.articles.findMany({
+      limit: limit,
+      offset: offset,
+      orderBy: [desc(articles.createdAt)],
+      with : {
+        author : true,
+        articleTags : true
+      }
+    });    
+    const formattedArticles = latestArticles.map((article:Article) => {
+      const tags = article.articleTags.map((tag:Tag) => tag.tagName);
+      return {
+        ...article,
+        articleTags: tags 
+      };
+    });
+    const data = formattedArticles.map((article: any) => {
+      return {
+        slug: article.slug,
+        title: article.title,
+        description: article.description,
+        tagList: article.articleTags ?? [],
+        createdAt: article.createdAt,
+        updatedAt: article.updatedAt,
+        favorited: false,
+        favoritesCount: 0,
+        author: {
+          username: article.author?.username ?? "fake name",
+          bio: article.author?.bio ?? "",
+          image: article.author?.image ?? "",
+          following: false
+        }
+      }
+    });
+    const res = {
+      articles : data,
+      articlesCount:formattedArticles.length
+    };
     return c.json(res);
   }catch(e){
     console.log(e);

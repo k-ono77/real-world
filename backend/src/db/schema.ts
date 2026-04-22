@@ -1,5 +1,5 @@
 import { pgTable, serial, text, varchar, timestamp, integer, primaryKey } from 'drizzle-orm/pg-core';
-
+import { relations } from 'drizzle-orm';
 // ユーザー
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
@@ -42,3 +42,24 @@ export const favorites = pgTable('favorites', {
 }, (t) => ({
   pk: primaryKey({ columns: [t.userId, t.articleId] }),
 }));
+
+// articlesテーブルのリレーション
+export const articlesRelations = relations(articles, ({ one, many }) => ({
+  author: one(users, {
+    fields: [articles.authorId],
+    references: [users.id],
+  }),
+  articleTags: many(articleTags),
+}));
+
+export const articlesTagsRelations = relations(articleTags, ({ one }) => ({
+  article: one(articles, {
+    fields: [articleTags.articleId],
+    references: [articles.id],
+  }),
+  tag: one(tags, {
+    fields: [articleTags.tagName],
+    references: [tags.name],
+  }),
+}));
+

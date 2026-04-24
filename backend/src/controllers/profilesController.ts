@@ -1,9 +1,16 @@
 import { db } from '../db/index.ts'; 
-import { users, articles, articleTags, tags} from '../db/schema.ts';
+import { users, articles, articleTags, tags, follows} from '../db/schema.ts';
 import { leftJoin, desc, eq, and, sql } from 'drizzle-orm';
 import type { Context } from 'hono';
 import { createPayloade, debagLog } from '../helpers/commonHelper.js';
+import { InferSelectModel,InferInsertModel } from 'drizzle-orm';
 
+type Follows = InferInsertModel<typeof follows>;
+type Users = InferSelectModel<typeof users>;
+interface Payload {
+  id : number;
+  exp : number;
+}
 export const getProfile = async(c:Context)=>{
   const userName = c.req.param('username');
   try{
@@ -17,6 +24,32 @@ export const getProfile = async(c:Context)=>{
       }
     };
     return c.json(formattedProfile);
+  }catch(e){
+    debagLog(e);
+  }
+}
+
+export const followUser = async(c:Context)=>{
+  const userName = c.req.param('username');
+  const headers = c.req.header('authorization');
+  try{
+    const [followingUserData] : Users = await db.select().from(users).where(eq(users.username,userName));
+    const decodePayloade : Payload = await createPayloade(headers);
+    const userId : number = Number(decodePayloade.id);
+    const insertFollow : Follows = {
+      followerId : userId,
+      followingId : followingUserData.id 
+    }
+    await db.insert(follows).values(insertFollow).returning();
+    const followingUserProfile = {
+      profile: {
+      username: followingUserData.username,
+      bio: followingUserData.bio,
+      image: followingUserData.image,
+      following: true
+      }
+    }
+    return c.json(followingUserProfile);
   }catch(e){
     debagLog(e);
   }

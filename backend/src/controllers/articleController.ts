@@ -4,7 +4,7 @@ import { leftJoin, desc, eq, and, sql } from 'drizzle-orm';
 import type { Context } from 'hono';
 import slugify from 'slugify';
 import { nanoid } from 'nanoid';
-import { createPayloade, debagLog } from '../helpers/commonHelper.js';
+import { createPayload, debagLog } from '../helpers/commonHelper.js';
 import { dbErrorHandler } from '../helpers/dbHelper.js';
 import { InferSelectModel,InferInsertModel } from 'drizzle-orm';
 
@@ -17,14 +17,14 @@ export interface User {
   image: string;
   following: boolean;
 };
+interface Payload {
+  id : number;
+  exp : number;
+}
 export const createArticle = async (c: Context) =>{
   type RequestBody = {
     article: Article;
   };
-  interface Payload {
-    id : number;
-    exp : number;
-  }
   interface User {
     username: string;
     bio: string;
@@ -33,7 +33,7 @@ export const createArticle = async (c: Context) =>{
   }
   const articleDto = await c.req.json<RequestBody>();
   const headers : string | undefined = await c.req.header('authorization');
-  const decodedPayload : Payload = await createPayloade(headers);
+  const decodedPayload : Payload = await createPayload(headers);
   const userId = Number(decodedPayload.id); 
   const { title, description, body, tagList } = articleDto.article;
   const generateSlug = (title: string) => {
@@ -172,4 +172,14 @@ export const getArticles = async (c : Context) => {
   }catch(e){
     console.log(e);
   }
+}
+
+export const getFeed = async(c:Context) => { 
+  const limit : string = c.req.query('limit');
+  const offset : string = c.req.query('offset');
+  const headers : string = c.req.header('authorization');
+  const { id : userId } : Payload =  await createPayload(headers);
+
+  
+  debagLog(userId);
 }

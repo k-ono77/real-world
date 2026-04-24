@@ -2,7 +2,7 @@ import { db } from '../db/index.ts';
 import { users, articles, articleTags, tags, follows} from '../db/schema.ts';
 import { leftJoin, desc, eq, and, sql } from 'drizzle-orm';
 import type { Context } from 'hono';
-import { createPayloade, debagLog } from '../helpers/commonHelper.js';
+import { createPayload, debagLog } from '../helpers/commonHelper.js';
 import { InferSelectModel,InferInsertModel } from 'drizzle-orm';
 
 type Follows = InferInsertModel<typeof follows>;
@@ -16,7 +16,7 @@ export const getProfile = async(c:Context)=>{
   const headers = c.req.header('authorization');
   try{
     const [followingUserData] : Users = await db.select().from(users).where(eq(users.username,userName));
-    const decodePayloade : Payload = await createPayloade(headers);
+    const decodePayloade : Payload = await createPayload(headers);
     const userId : number = Number(decodePayloade.id);
     const [userData] = await db.select().from(users).where(eq(users.username,userName));
     const [followsData] = await db.select().from(follows).where(
@@ -62,7 +62,7 @@ export const setFollowStatus = async(c:Context,follow:boolean) => {
   const headers = c.req.header('authorization');
   try{
     const [followingUserData] : Users = await db.select().from(users).where(eq(users.username,userName));
-    const decodePayloade : Payload = await createPayloade(headers);
+    const decodePayloade : Payload = await createPayload(headers);
     const userId : number = Number(decodePayloade.id);
     if(follow){
       const insertFollow : Follows = {

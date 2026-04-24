@@ -13,14 +13,24 @@ interface Payload {
 }
 export const getProfile = async(c:Context)=>{
   const userName = c.req.param('username');
+  const headers = c.req.header('authorization');
   try{
+    const [followingUserData] : Users = await db.select().from(users).where(eq(users.username,userName));
+    const decodePayloade : Payload = await createPayloade(headers);
+    const userId : number = Number(decodePayloade.id);
     const [userData] = await db.select().from(users).where(eq(users.username,userName));
+    const [followsData] = await db.select().from(follows).where(
+      and(
+        eq(follows.followingId,followingUserData.id),
+        eq(follows.followerId,userId)
+      )
+    )
     const formattedProfile = {
       profile:{
         username:userData.username,
         bio: userData.bio,
         image: userData.image,
-        following: false
+        following: !!followsData
       }
     };
     return c.json(formattedProfile);

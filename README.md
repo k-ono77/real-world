@@ -147,3 +147,26 @@ npm install
 docker stop $(docker ps -q)
 ```
 
+## スキーマの内容を生成する
+```bash
+npx drizzle-kit generate
+```
+
+## テーブルの内容を反映させる(スキーマを元に反映)
+```bash
+npx drizzle-kit push
+```
+
+## テーブルの内容を反映させる(SQLファイルを元に反映)
+```bash
+npx drizzle-kit migrate 
+```
+
+## コンテナに入る
+```bash
+docker compose exec < コンテナ名 > bash
+```
+docker compose exec realworld-app-backend-1 bash
+
+
+docker exec -it realworld-app-backend-1 bash

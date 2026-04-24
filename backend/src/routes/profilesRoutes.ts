@@ -7,4 +7,6 @@ router.get('/:username', profilesController.getProfile);
 
 router.post('/:username/follow',profilesController.followUser);
 
+router.delete('/:username/follow',profilesController.unfollowUser);
+
 export default router;

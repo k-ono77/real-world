@@ -164,9 +164,5 @@ npx drizzle-kit migrate
 
 ## コンテナに入る
 ```bash
-docker compose exec < コンテナ名 > bash
+docker exec -it < コンテナ名 > bash
 ```
-docker compose exec realworld-app-backend-1 bash
-
-
-docker exec -it realworld-app-backend-1 bash

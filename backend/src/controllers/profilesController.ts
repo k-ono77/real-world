@@ -30,27 +30,55 @@ export const getProfile = async(c:Context)=>{
 }
 
 export const followUser = async(c:Context)=>{
+  try{
+    const followingUserProfile = await setFollowStatus(c,true);
+    return c.json(followingUserProfile);
+  }catch(e){
+    debagLog(e);
+  }
+}
+
+export const unfollowUser = async(c:Context) => {
+  try{
+    const followingUserProfile = await setFollowStatus(c,false);
+    return c.json(followingUserProfile);
+  }catch(e){
+    debagLog(e);
+  }
+}
+
+export const setFollowStatus = async(c:Context,follow:boolean) => {
   const userName = c.req.param('username');
   const headers = c.req.header('authorization');
   try{
     const [followingUserData] : Users = await db.select().from(users).where(eq(users.username,userName));
     const decodePayloade : Payload = await createPayloade(headers);
     const userId : number = Number(decodePayloade.id);
-    const insertFollow : Follows = {
-      followerId : userId,
-      followingId : followingUserData.id 
+    if(follow){
+      const insertFollow : Follows = {
+        followerId : userId,
+        followingId : followingUserData.id 
+      }
+      await db.insert(follows).values(insertFollow).returning();
+    }else{
+      await db.delete(follows).where(
+        and(
+          eq(follows.followingId,followingUserData.id),
+          eq(follows.followerId,userId)
+        )
+      )
     }
-    await db.insert(follows).values(insertFollow).returning();
     const followingUserProfile = {
       profile: {
       username: followingUserData.username,
       bio: followingUserData.bio,
       image: followingUserData.image,
-      following: true
+      following: follow
       }
     }
-    return c.json(followingUserProfile);
+    return followingUserProfile;
   }catch(e){
     debagLog(e);
   }
+
 }

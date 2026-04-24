@@ -43,6 +43,15 @@ export const favorites = pgTable('favorites', {
   pk: primaryKey({ columns: [t.userId, t.articleId] }),
 }));
 
+// フォロー()
+export const follows = pgTable('follows', {
+  followerId: integer('follower_id').references(() => users.id).notNull(),
+  followingId: integer('following_id').references(() => users.id).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull()
+},(t)=>({
+  pk:primaryKey({columns:[t.followerId,t.followingId]}),
+}));
+
 // articlesテーブルのリレーション
 export const articlesRelations = relations(articles, ({ one, many }) => ({
   author: one(users, {
@@ -62,4 +71,3 @@ export const articlesTagsRelations = relations(articleTags, ({ one }) => ({
     references: [tags.name],
   }),
 }));
-

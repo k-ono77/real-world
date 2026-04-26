@@ -1,5 +1,5 @@
 import { db } from '../db/index.ts'; 
-import { users, articles, articleTags, tags, articles } from '../db/schema.ts';
+import { users, articles, articleTags, tags, articles, follows } from '../db/schema.ts';
 import { leftJoin, desc, eq, and, sql } from 'drizzle-orm';
 import type { Context } from 'hono';
 import slugify from 'slugify';
@@ -7,6 +7,7 @@ import { nanoid } from 'nanoid';
 import { createPayload, debagLog } from '../helpers/commonHelper.js';
 import { dbErrorHandler } from '../helpers/dbHelper.js';
 import { InferSelectModel,InferInsertModel } from 'drizzle-orm';
+import { followUser } from './profilesController.ts';
 
 export type Article = InferSelectModel<typeof articles>;
 export type NewArticle = InferInsertModel<typeof articles>;
@@ -178,8 +179,23 @@ export const getFeed = async(c:Context) => {
   const limit : string = c.req.query('limit');
   const offset : string = c.req.query('offset');
   const headers : string = c.req.header('authorization');
-  const { id : userId } : Payload =  await createPayload(headers);
+  try{
+    const { id : userId } : Payload =  await createPayload(headers);
+    debagLog(userId);
+    // const followingUserList = await db.select().from(follows).where(eq(follows.followerId,userId));
+    const followingData = await db.query.users.findFirst({
+      where: eq(users.id, userId),
+      with: {
+        following: {
+          columns: {
+            followingId: true,
+          },
+        },
+      },
+    });
+    debagLog(followingData,'folll');
+  }catch(ee){
+    debagLog(ee);
 
-  
-  debagLog(userId);
+  }
 }

@@ -71,3 +71,17 @@ export const articlesTagsRelations = relations(articleTags, ({ one }) => ({
     references: [tags.name],
   }),
 }));
+
+export const usersRelations = relations(users, ({ many }) => ({
+  following : many(follows,{ relationName:'following'}),
+  followers : many(follows,{ relationName:'followers'}),
+})); 
+
+export const followingRelations = relations(follows, ({ one }) => ({
+  following : one(users,{
+    fields : [follows.followerId],
+    references :[users.id],
+    relationName : 'following' 
+  }),
+}));
+

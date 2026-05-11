@@ -13,6 +13,7 @@ import Home from "./routes/Home";
 import HomeArticles from "./routes/HomeArticles";
 import Login from "./routes/Login";
 import NotFound from "./routes/NotFound";
+import PopularAuthors from "./routes/PopularAuthors";
 import Profile from "./routes/Profile/Profile";
 import ProfileArticles from "./routes/Profile/ProfileArticles";
 import ProfileFavArticles from "./routes/Profile/ProfileFavArticles";
@@ -46,6 +47,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
               <Route index element={<ProfileArticles />} />
               <Route path="favorites" element={<ProfileFavArticles />} />
             </Route>
+            <Route path="popular-authors" element={<PopularAuthors />}/>
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

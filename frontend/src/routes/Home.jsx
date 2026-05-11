@@ -5,9 +5,15 @@ import FeedToggler from "../components/FeedToggler";
 import { useAuth } from "../context/AuthContext";
 import FeedProvider from "../context/FeedContext";
 import PopularTags from "./../components/PopularTags";
+import PopularAuth from "./../components/PopularAuth";
+import { useNavigate } from "react-router-dom"
 
 function Home() {
   const { isAuth } = useAuth();
+  const navigate = useNavigate();
+  const handleClick = () => {
+    navigate("/popular-authors");
+  }
 
   return (
     <div className="home-page">
@@ -23,8 +29,10 @@ function Home() {
             <FeedToggler />
             <Outlet />
           </div>
-
-          <PopularTags />
+          <aside className="col-md-3">
+            <PopularTags />
+            <PopularAuth />
+          </aside>
         </FeedProvider>
       </ContainerRow>
     </div>

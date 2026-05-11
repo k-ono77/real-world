@@ -5,6 +5,8 @@ const router = new Hono();
 
 router.post('/', articleController.createArticle);
 
+router.post('/:slug/favorite', articleController.addFavorite);
+
 router.get('/', articleController.getArticles);
 
 router.get('/feed', articleController.getFeed);

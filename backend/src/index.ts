@@ -13,7 +13,7 @@ app.route('/api/users',authRoutes)
 // setting
 app.route('/api/user',userRoutes)
 
-// articles 
+// articles ,favorite
 app.route('/api/articles',articleRoutes)
 
 // profiles

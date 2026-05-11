@@ -198,4 +198,11 @@ export const getFeed = async(c:Context) => {
     debagLog(ee);
 
   }
+  const { id : userId } : Payload =  await createPayload(headers);
+  debagLog(userId);
+}
+
+export const addFavorite = async(c:Context) => {
+  const slug : string = c.req.param('slug');
+  const ariticleId : InferSelectModel.id  = await db.select({id:articles.id}).from(articles).where(eq(articles.slug,slug));
 }

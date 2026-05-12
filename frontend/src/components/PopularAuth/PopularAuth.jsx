@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
-import PopularAuthButton from "./PopularAuthButton";
+import { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom"
+import AuthProvider, { useAuth } from "../../context/AuthContext";
 
 function PopularAuth() {
+  // const { isAuth, headers } = useAuth();
   const navigate = useNavigate();
   const handleClick = () => {
     navigate("/popular-authors");

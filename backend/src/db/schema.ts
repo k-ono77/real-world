@@ -43,7 +43,7 @@ export const favorites = pgTable('favorites', {
   pk: primaryKey({ columns: [t.userId, t.articleId] }),
 }));
 
-// フォロー()
+// フォロー
 export const follows = pgTable('follows', {
   followerId: integer('follower_id').references(() => users.id).notNull(),
   followingId: integer('following_id').references(() => users.id).notNull(),

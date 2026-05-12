@@ -1,6 +1,6 @@
 import { db } from '../db/index.ts' 
-import { users, articleTags, tags, articles, follows } from '../db/schema.ts'
-import { leftJoin, desc, eq, and, sql, inArray } from 'drizzle-orm'
+import { users, articleTags, tags, articles, follows, favorites } from '../db/schema.ts'
+import { desc, eq, inArray } from 'drizzle-orm'
 import type { Context } from 'hono'
 import slugify from 'slugify'
 import { nanoid } from 'nanoid'
@@ -8,6 +8,7 @@ import { createPayload, debagLog } from '../helpers/commonHelper.js'
 import { dbErrorHandler } from '../helpers/dbHelper.js'
 import { InferSelectModel,InferInsertModel } from 'drizzle-orm'
 
+export type NewFavorite = InferInsertModel<typeof favorites>
 export type Article = InferSelectModel<typeof articles>
 export type NewArticle = InferInsertModel<typeof articles>
 export type Tag = InferInsertModel<typeof tags>
@@ -200,6 +201,42 @@ export const createArticles = (latestArticles : Article[]) => {
 }
 
 export const addFavorite = async(c:Context) => {
-  const slug : string = c.req.param('slug')
-  const ariticleId : InferSelectModel.id  = await db.select({id:articles.id}).from(articles).where(eq(articles.slug,slug))
+  const headers : string | undefined = c.req.header('authorization')
+  const slug : string | undefined = c.req.param('slug')
+  try{
+    const { id : userId } =  await createPayload(headers)
+    const [article] = await db.select().from(articles).where(eq(articles.slug,slug))
+    const inserteFavorite : NewFavorite = {
+      userId: Number(userId),
+      articleId: Number(article.id)
+    }
+    let tagList = await db.select().from(articleTags).where(eq(articleTags.articleId,Number(article.id)))
+    tagList = tagList.map((obj:any) =>{
+      return obj.tagName
+    })
+    await db.insert(favorites).values(inserteFavorite).onConflictDoNothing().returning()
+    const [userInfo] : User[] = await db.select().from(users).where(eq(users.id,article.authorId)) 
+    const res = {
+      article:{
+        slug : article.slug,
+        title : article.title,
+        description : article.description,
+        body : article.body,
+        tagList: tagList,
+        createdAt: article.createdAt,
+        updatedAt: article.updatedAt,
+        favorited: true,
+        favoritesCount:1,
+        author:{
+          username: userInfo.username,
+          bio: userInfo.bio,
+          image: userInfo.image,
+          following: false
+        }
+      }
+    }
+    return c.json(res)
+  }catch(e){
+    debagLog(e)
+  }
 }

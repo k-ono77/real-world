@@ -7,8 +7,6 @@ import { nanoid } from 'nanoid'
 import { createPayload, debagLog } from '../helpers/commonHelper.js'
 import { dbErrorHandler } from '../helpers/dbHelper.js'
 import { InferSelectModel,InferInsertModel } from 'drizzle-orm'
-import { followUser } from './profilesController.ts'
-import NavItem from '../../../frontend/src/components/NavItem/NavItem.jsx'
 
 export type Article = InferSelectModel<typeof articles>
 export type NewArticle = InferInsertModel<typeof articles>
@@ -128,49 +126,17 @@ export const getArticle = async (c : Context) => {
     console.log(e)
   }
 }
-export const getArticles = async (c : Context) => {
-  debagLog("global")
-  const limit : number = Number(c.req.query('limit'))
-  const offset : number = Number(c.req.query('offset'))
+
+export const getGlobal = async (c : Context) => {
   try{
     const latestArticles : Article[] = await db.query.articles.findMany({
-      limit: limit,
-      offset: offset,
       orderBy: [desc(articles.createdAt)],
       with : {
         author : true,
         articleTags : true
       }
-    })    
-    const formattedArticles = latestArticles.map((article:Article) => {
-      const tags = article.articleTags.map((tag:Tag) => tag.tagName)
-      return {
-        ...article,
-        articleTags: tags 
-      }
     })
-    const data = formattedArticles.map((article: any) => {
-      return {
-        slug: article.slug,
-        title: article.title,
-        description: article.description,
-        tagList: article.articleTags ?? [],
-        createdAt: article.createdAt,
-        updatedAt: article.updatedAt,
-        favorited: false,
-        favoritesCount: 0,
-        author: {
-          username: article.author?.username ?? "fake name",
-          bio: article.author?.bio ?? "",
-          image: article.author?.image ?? "",
-          following: false
-        }
-      }
-    })
-    const res = {
-      articles : data,
-      articlesCount:formattedArticles.length
-    }
+    const res = createArticles(latestArticles)
     return c.json(res)
   }catch(e){
     console.log(e)
@@ -179,67 +145,56 @@ export const getArticles = async (c : Context) => {
 
 export const getFeed = async(c:Context) => { 
   const headers : string | undefined = c.req.header('authorization')
-  debagLog("feed")
   try{
     const { id : userId } : Payload =  await createPayload(headers)
     const followingUserList = await db.select({id:follows.followingId}).from(follows).where(eq(follows.followerId,userId))
     const userIds = followingUserList.map(u =>u.id)
-    
-    
     const latestArticles : Article[] = await db.query.articles.findMany({
-      // limit: limit,
-      // offset: offset,
       where: inArray(articles.authorId, userIds),
       orderBy: [desc(articles.createdAt)],
       with : {
         author : true,
         articleTags : true
       }
-    })    
-    const formattedArticles = latestArticles.map((article:Article) => {
+    })
+    const res = createArticles(latestArticles)    
+    return c.json(res)
+  }catch(e){
+    debagLog(e)
+  }
+}
+
+export const createArticles = (latestArticles : Article[]) => {
+  const formattedArticles = latestArticles.map((article:Article) => {
       const tags = article.articleTags.map((tag:Tag) => tag.tagName)
       return {
         ...article,
         articleTags: tags 
       }
     })
-    const data = formattedArticles.map((article: any) => {
-      return {
-        slug: article.slug,
-        title: article.title,
-        description: article.description,
-        tagList: article.articleTags ?? [],
-        createdAt: article.createdAt,
-        updatedAt: article.updatedAt,
-        favorited: false,
-        favoritesCount: 0,
-        author: {
-          username: article.author?.username ?? "fake name",
-          bio: article.author?.bio ?? "",
-          image: article.author?.image ?? "",
-          following: true
-        }
+  const data = formattedArticles.map((article: any) => {
+    return {
+      slug: article.slug,
+      title: article.title,
+      description: article.description,
+      tagList: article.articleTags ?? [],
+      createdAt: article.createdAt,
+      updatedAt: article.updatedAt,
+      favorited: false,
+      favoritesCount: 0,
+      author: {
+        username: article.author?.username ?? "fake name",
+        bio: article.author?.bio ?? "",
+        image: article.author?.image ?? "",
+        following: true
       }
-    })
-    const res = {
-      articles : data,
-      articlesCount:formattedArticles.length
     }
-
-    // const followingData = await db.query.users.findFirst({
-    //   where: eq(users.id, userId),
-    //   with: {
-    //     following: {
-    //       columns: {
-    //         followingId: true,
-    //       },
-    //     },
-    //   },
-    // })
-    return c.json(res)
-  }catch(e){
-    debagLog(e)
+  })
+  const res = {
+    articles : data,
+    articlesCount:formattedArticles.length
   }
+  return res
 }
 
 export const addFavorite = async(c:Context) => {

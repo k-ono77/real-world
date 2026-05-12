@@ -1,5 +1,5 @@
 import { db } from '../db/index.ts' 
-import { users, articles, articleTags, tags, articles, follows } from '../db/schema.ts'
+import { users, articleTags, tags, articles, follows } from '../db/schema.ts'
 import { leftJoin, desc, eq, and, sql, inArray } from 'drizzle-orm'
 import type { Context } from 'hono'
 import slugify from 'slugify'
@@ -11,12 +11,7 @@ import { InferSelectModel,InferInsertModel } from 'drizzle-orm'
 export type Article = InferSelectModel<typeof articles>
 export type NewArticle = InferInsertModel<typeof articles>
 export type Tag = InferInsertModel<typeof tags>
-export interface User {
-  username: string
-  bio: string
-  image: string
-  following: boolean
-}
+export type User = InferSelectModel<typeof users>
 interface Payload {
   id : number
   exp : number
@@ -128,8 +123,15 @@ export const getArticle = async (c : Context) => {
 }
 
 export const getGlobal = async (c : Context) => {
+  const author : string | undefined = c.req.query('author')
+  let userId : number | undefined = undefined
   try{
+    if(author){
+      const [user] : User[] = await db.select().from(users).where(eq(users.username,author))
+      userId = user.id
+    }
     const latestArticles : Article[] = await db.query.articles.findMany({
+      where: (articles, { eq }) => (userId ? eq(articles.authorId, userId):undefined),
       orderBy: [desc(articles.createdAt)],
       with : {
         author : true,

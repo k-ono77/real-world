@@ -21,12 +21,6 @@ export const createArticle = async (c: Context) =>{
   type RequestBody = {
     article: Article
   }
-  interface User {
-    username: string
-    bio: string
-    image: string
-    following: boolean
-  }
   const articleDto = await c.req.json<RequestBody>()
   const headers : string | undefined = await c.req.header('authorization')
   const decodedPayload : Payload = await createPayload(headers)
@@ -239,4 +233,12 @@ export const addFavorite = async(c:Context) => {
   }catch(e){
     debagLog(e)
   }
+}
+
+const createArticleResponcePartical = async (insertedArticle:,userId) => {
+    const favoCount = await db.select({count : count()}).from(favorites).where(eq(favorites.articleId,insertedArticle.id))
+    const rows = await db.select().from(favorites).where(and(eq(favorites.userId,userInfo.id),eq(favorites.articleId,insertedArticle.id)))
+    const favorited = rows.length > 0
+    const follwingRow = await db.select().from(follows).where(and(eq(follows.followerId,userId),eq(follows.followingId,userId)))
+    const following = follwingRow.length > 0
 }

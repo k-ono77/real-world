@@ -1,6 +1,6 @@
 import { db } from '../db/index.ts' 
 import { users, articleTags, tags, articles, follows, favorites } from '../db/schema.ts'
-import { desc, eq, inArray } from 'drizzle-orm'
+import { desc, eq, inArray, count, and } from 'drizzle-orm'
 import type { Context } from 'hono'
 import slugify from 'slugify'
 import { nanoid } from 'nanoid'
@@ -57,6 +57,7 @@ export const createArticle = async (c: Context) =>{
     })
     await db.insert(articleTags).values(insertArticleTags).onConflictDoNothing().returning()
     const [userInfo] : User[] = await db.select().from(users).where(eq(users.id,userId))
+    const particalRes = await createArticleResponsePartical(insertedArticle,userId,insertedArticle.authorId)
     const res = {
       article:{
         slug : insertedArticle.slug,
@@ -66,13 +67,13 @@ export const createArticle = async (c: Context) =>{
         tagList: tagList,
         createdAt: insertedArticle.createdAt,
         updatedAt: insertedArticle.updatedAt,
-        favorited: false,
-        favoritesCount:0,
+        favorited: articles.favorited,
+        favoritesCount: particalRes.favoCount,
         author:{
           username: userInfo.username,
           bio: userInfo.bio,
           image: userInfo.image,
-          following: false
+          following: particalRes.following
         }
       }
     }
@@ -85,6 +86,7 @@ export const createArticle = async (c: Context) =>{
 export const getArticle = async (c : Context) => {
   const slug: string | undefined = c.req.param('slug')
   const headers :string | undefined = c.req.header('authorization')
+  const { id : userId } =  await createPayload(headers)
   try{
     const [article] : Article = await db.select().from(articles).where(eq(articles.slug,slug))
     let tagList = await db.select().from(articleTags).where(eq(articleTags.articleId,Number(article.id)))
@@ -92,6 +94,7 @@ export const getArticle = async (c : Context) => {
       return obj.tagName
     })
     const [userInfo] : User[] = await db.select().from(users).where(eq(users.id,article.authorId)) 
+    const particalRes = await createArticleResponsePartical(article,userId,article.authorId)
     const res = {
       article:{
         slug : article.slug,
@@ -101,13 +104,13 @@ export const getArticle = async (c : Context) => {
         tagList: tagList,
         createdAt: article.createdAt,
         updatedAt: article.updatedAt,
-        favorited: false,
-        favoritesCount:0,
+        favorited: particalRes.favorited,
+        favoritesCount: particalRes.favoCount,
         author:{
           username: userInfo.username,
           bio: userInfo.bio,
           image: userInfo.image,
-          following: false
+          following: particalRes.following
         }
       }
     }
@@ -119,21 +122,24 @@ export const getArticle = async (c : Context) => {
 
 export const getGlobal = async (c : Context) => {
   const author : string | undefined = c.req.query('author')
-  let userId : number | undefined = undefined
+  let authorId : number | undefined = undefined
+  const headers : string | undefined = await c.req.header('authorization')
+  const { id: userId } : Payload = await createPayload(headers)
   try{
+    // 著者
     if(author){
       const [user] : User[] = await db.select().from(users).where(eq(users.username,author))
-      userId = user.id
+      authorId = user.id
     }
     const latestArticles : Article[] = await db.query.articles.findMany({
-      where: (articles, { eq }) => (userId ? eq(articles.authorId, userId):undefined),
+      where: (articles:Article, { eq }) => (authorId ? eq(articles.authorId, authorId):authorId),
       orderBy: [desc(articles.createdAt)],
       with : {
         author : true,
         articleTags : true
       }
     })
-    const res = createArticles(latestArticles)
+    const res = await createArticles(latestArticles,userId)
     return c.json(res)
   }catch(e){
     console.log(e)
@@ -154,14 +160,14 @@ export const getFeed = async(c:Context) => {
         articleTags : true
       }
     })
-    const res = createArticles(latestArticles)    
+    const res = await createArticles(latestArticles,userId)    
     return c.json(res)
   }catch(e){
     debagLog(e)
   }
 }
 
-export const createArticles = (latestArticles : Article[]) => {
+export const createArticles = async(latestArticles:Article[], userId:number) => {
   const formattedArticles = latestArticles.map((article:Article) => {
       const tags = article.articleTags.map((tag:Tag) => tag.tagName)
       return {
@@ -169,7 +175,9 @@ export const createArticles = (latestArticles : Article[]) => {
         articleTags: tags 
       }
     })
-  const data = formattedArticles.map((article: any) => {
+  const data = await Promise.all(
+  formattedArticles.map(async(article: any) => {
+    const particalRes = await createArticleResponsePartical(article,userId,article.authorId)
     return {
       slug: article.slug,
       title: article.title,
@@ -177,16 +185,16 @@ export const createArticles = (latestArticles : Article[]) => {
       tagList: article.articleTags ?? [],
       createdAt: article.createdAt,
       updatedAt: article.updatedAt,
-      favorited: false,
-      favoritesCount: 0,
+      favorited: particalRes.favorited,
+      favoritesCount: particalRes.favoCount,
       author: {
         username: article.author?.username ?? "fake name",
         bio: article.author?.bio ?? "",
         image: article.author?.image ?? "",
-        following: true
+        following: particalRes.following
       }
     }
-  })
+  }))
   const res = {
     articles : data,
     articlesCount:formattedArticles.length
@@ -197,6 +205,7 @@ export const createArticles = (latestArticles : Article[]) => {
 export const addFavorite = async(c:Context) => {
   const headers : string | undefined = c.req.header('authorization')
   const slug : string | undefined = c.req.param('slug')
+  const { id : userId } =  await createPayload(headers)
   try{
     const { id : userId } =  await createPayload(headers)
     const [article] = await db.select().from(articles).where(eq(articles.slug,slug))
@@ -210,6 +219,7 @@ export const addFavorite = async(c:Context) => {
     })
     await db.insert(favorites).values(inserteFavorite).onConflictDoNothing().returning()
     const [userInfo] : User[] = await db.select().from(users).where(eq(users.id,article.authorId)) 
+    const particalRes = await createArticleResponsePartical(article,userId,article.authorId)
     const res = {
       article:{
         slug : article.slug,
@@ -219,13 +229,13 @@ export const addFavorite = async(c:Context) => {
         tagList: tagList,
         createdAt: article.createdAt,
         updatedAt: article.updatedAt,
-        favorited: true,
-        favoritesCount:1,
+        favorited: particalRes.favorited,
+        favoritesCount: particalRes.favoCount,
         author:{
           username: userInfo.username,
           bio: userInfo.bio,
           image: userInfo.image,
-          following: false
+          following: particalRes.following
         }
       }
     }
@@ -235,10 +245,16 @@ export const addFavorite = async(c:Context) => {
   }
 }
 
-const createArticleResponcePartical = async (insertedArticle:,userId) => {
-    const favoCount = await db.select({count : count()}).from(favorites).where(eq(favorites.articleId,insertedArticle.id))
-    const rows = await db.select().from(favorites).where(and(eq(favorites.userId,userInfo.id),eq(favorites.articleId,insertedArticle.id)))
-    const favorited = rows.length > 0
-    const follwingRow = await db.select().from(follows).where(and(eq(follows.followerId,userId),eq(follows.followingId,userId)))
-    const following = follwingRow.length > 0
+const createArticleResponsePartical = async (insertedArticle:Article,userId:number,authorId:number)=> {
+  let [{favoCount}] = await db.select({favoCount  : count()}).from(favorites).where(eq(favorites.articleId,insertedArticle.id))
+  favoCount  = Number(favoCount)
+  const rows = await db.select().from(favorites).where(and(eq(favorites.userId,userId),eq(favorites.articleId,insertedArticle.id)))
+  const favorited = rows.length > 0
+  const follwingRow = await db.select().from(follows).where(and(eq(follows.followerId,userId),eq(follows.followingId,authorId)))
+  const following = follwingRow.length > 0
+  return {
+    favoCount: favoCount,
+    favorited: favorited,
+    following: following
+  }
 }

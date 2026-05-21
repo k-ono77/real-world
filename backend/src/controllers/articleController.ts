@@ -67,7 +67,7 @@ export const createArticle = async (c: Context) =>{
         tagList: tagList,
         createdAt: insertedArticle.createdAt,
         updatedAt: insertedArticle.updatedAt,
-        favorited: articles.favorited,
+        favorited: particalRes.favorited,
         favoritesCount: particalRes.favoCount,
         author:{
           username: userInfo.username,
@@ -121,18 +121,29 @@ export const getArticle = async (c : Context) => {
 }
 
 export const getGlobal = async (c : Context) => {
+  const favorited : string | undefined = c.req.query('favorited')
   const author : string | undefined = c.req.query('author')
-  let authorId : number | undefined = undefined
   const headers : string | undefined = await c.req.header('authorization')
   const { id: userId } : Payload = await createPayload(headers)
   try{
-    // 著者
+    let authorId : number | undefined = undefined
+    let favoritedArticleIds : number[] | undefined = undefined
+
     if(author){
       const [user] : User[] = await db.select().from(users).where(eq(users.username,author))
       authorId = user.id
     }
+    if(favorited){
+      const [user] : User[] = await db.select().from(users).where(eq(users.username,favorited))
+      const rows = await db.select({articleId: favorites.articleId}).from(favorites).where(eq(favorites.userId, user.id))
+      favoritedArticleIds = rows.map((r: {articleId: number}) => r.articleId)
+    }
     const latestArticles : Article[] = await db.query.articles.findMany({
-      where: (articles:Article, { eq }) => (authorId ? eq(articles.authorId, authorId):authorId),
+      where: authorId
+        ? eq(articles.authorId, authorId)
+        : favoritedArticleIds
+          ? inArray(articles.id, favoritedArticleIds)
+          : undefined,
       orderBy: [desc(articles.createdAt)],
       with : {
         author : true,
@@ -207,7 +218,6 @@ export const addFavorite = async(c:Context) => {
   const slug : string | undefined = c.req.param('slug')
   const { id : userId } =  await createPayload(headers)
   try{
-    const { id : userId } =  await createPayload(headers)
     const [article] = await db.select().from(articles).where(eq(articles.slug,slug))
     const inserteFavorite : NewFavorite = {
       userId: Number(userId),

@@ -6,6 +6,7 @@ import slugify from 'slugify'
 import { nanoid } from 'nanoid'
 import { createPayload, debagLog } from '../helpers/commonHelper.js'
 import { dbErrorHandler } from '../helpers/dbHelper.js'
+import { factory } from '../helpers/factory.ts'
 import { InferSelectModel,InferInsertModel } from 'drizzle-orm'
 
 export type NewFavorite = InferInsertModel<typeof favorites>
@@ -252,6 +253,58 @@ export const addFavorite = async(c:Context) => {
     return c.json(res)
   }catch(e){
     debagLog(e)
+  }
+}
+
+export const deleteFavorie = async(c:Context) => {
+  const headers : string | undefined = c.req.header('authorization')
+  const slug : string | undefined = c.req.param('slug')
+  const { id : userId } =  await createPayload(headers)
+  try{
+    const [article] : Article[] = await db.query.articles.findMany({
+      where: eq(articles.slug,slug),
+      with : {
+        author : true,
+        articleTags : true
+      }
+    })
+    if(!article){
+      return c.json({ errors: { body: ['article not found'] } }, 404)
+    }
+    const articleId  = article.id
+    await db.delete(favorites).where(
+      and(
+        eq(favorites.userId,userId),
+        eq(favorites.articleId,articleId)
+      )
+    )
+    const tagList = article.articleTags.map((obj:any) =>{
+      return obj.tagName
+    })
+    const particalRes = await createArticleResponsePartical(article,userId,article.authorId)
+    const res = {
+      article:{
+        slug : article.slug,
+        title : article.title,
+        description : article.description,
+        body : article.body,
+        tagList: tagList,
+        createdAt: article.createdAt,
+        updatedAt: article.updatedAt,
+        favorited: particalRes.favorited,
+        favoritesCount: particalRes.favoCount,
+        author:{
+          username: article.author.username,
+          bio: article.author.bio,
+          image: article.author.image,
+          following: particalRes.following
+        }
+      }
+    }
+    return c.json(res)
+  }catch(e){
+    debagLog(e)
+    return dbErrorHandler(e,c)
   }
 }
 

@@ -8,6 +8,8 @@ function ArticlesPreview({ articles, loading, updateArticles }) {
     const items = [...articles];
 
     const updatedArticles = items.map((item) =>
+      // itemをベースにarticleで上書きする
+      // { ...item, ...article }
       item.slug === article.slug ? { ...item, ...article } : item,
     );
 

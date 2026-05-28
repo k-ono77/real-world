@@ -10,7 +10,7 @@ export const signupSchema = z.object({
 
 export const loginSchema = z.object({
   user: z.object({
-    email: z.string().min(1, "can't be blank").email('is invalid'),
+    email: z.email('is invalid'),
     password: z.string().min(1, "can't be blank"),
   }),
 });

@@ -132,3 +132,37 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 - [RealWorld (GitHub)](https://github.com/gothinkster/realworld)
 - [CodebaseShow](https://codebase.show/)
 - [How to write a Good readme](https://bulldogjob.com/news/449-how-to-write-a-good-readme-for-your-github-project)
+
+## 1.コンテナ・パッケージの追加手順
+```bash
+docker compose exec < container-name > npm install < package-name >
+```
+## 2.ホスト・パッケージの追加手順
+```bash
+cd backend
+npm install
+```
+## 全コンテナ停止
+```bash
+docker stop $(docker ps -q)
+```
+
+## スキーマの内容を生成する
+```bash
+npx drizzle-kit generate
+```
+
+## テーブルの内容を反映させる(スキーマを元に反映)
+```bash
+npx drizzle-kit push
+```
+
+## テーブルの内容を反映させる(SQLファイルを元に反映)
+```bash
+npx drizzle-kit migrate 
+```
+
+## コンテナに入る
+```bash
+docker exec -it < コンテナ名 > bash
+```

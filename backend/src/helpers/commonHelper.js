@@ -6,14 +6,13 @@ export function debagLog(log,title='DEBAG') {
   console.log('----------------------');
 }
 
-export async function  createPayloade(token){
+export async function createPayload(token){
   return verify(token, Auth.SECRET, Auth.ALG);
 }
 
 const commonHelper = {
   debagLog,
-  createPayloade
+  createPayload
 };
-
 
 export default commonHelper;

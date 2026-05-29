@@ -4,7 +4,7 @@ const articleFields = {
   title: z.string().min(1, "can't be blank"),
   description: z.string().min(1, "can't be blank"),
   body: z.string().min(1, "can't be blank"),
-  tagList: z.string().min(1, "can't be blank"),
+  tagList: z.array(z.string()).default([]),
 };
 
 export const createArticleSchema = z.object({

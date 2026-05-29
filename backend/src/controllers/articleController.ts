@@ -22,11 +22,11 @@ export const createArticle = async (c: Context) =>{
   type RequestBody = {
     article: Article
   }
-  const articleDto = await c.req.json<RequestBody>()
+  const articleData = await c.req.json<RequestBody>()
   const headers : string | undefined = await c.req.header('authorization')
   const decodedPayload : Payload = await createPayload(headers)
   const userId = Number(decodedPayload.id) 
-  const { title, description, body, tagList } = articleDto.article
+  const { title, description, body, tagList } = articleData.article
   const generateSlug = (title: string) => {
     const base = slugify(title, {
       lower: true,
@@ -37,7 +37,7 @@ export const createArticle = async (c: Context) =>{
   }
   const slug = generateSlug(title)
   try{
-    const [insertedArticle] : NewArticle = await db.insert(articles).values({
+    const [insertedArticle] : NewArticle[] = await db.insert(articles).values({
       title,
       description,
       body,
@@ -89,7 +89,7 @@ export const getArticle = async (c : Context) => {
   const headers :string | undefined = c.req.header('authorization')
   const { id : userId } =  await createPayload(headers)
   try{
-    const [article] : Article = await db.select().from(articles).where(eq(articles.slug,slug))
+    const [article] : Article[] = await db.select().from(articles).where(eq(articles.slug,slug))
     let tagList = await db.select().from(articleTags).where(eq(articleTags.articleId,Number(article.id)))
     tagList = tagList.map((obj:any) =>{
       return obj.tagName
@@ -308,6 +308,69 @@ export const deleteFavorie = async(c:Context) => {
   }
 }
 
+export const updateArticle = async (c: Context) => {
+  const slug: string | undefined = c.req.param('slug')
+  const headers : string | undefined = c.req.header('authorization')
+  const { id : userId } =  await createPayload(String(headers))
+  const articleData = await c.req.json()
+  const { title, description, body, tagList } = articleData.article
+  try{
+    const [updatedArticle] = await db.update(articles)
+    .set(
+      {
+        title,
+        description,
+        body
+      }
+    )
+    .where(
+      and(
+        eq(articles.authorId, userId),
+        eq(articles.slug, String(slug))
+      )
+    )
+    .returning()
+    const insertTags = tagList.map((tag:string)=>{
+      return {
+        name : tag
+      }
+    })
+    await db.insert(tags).values(insertTags).onConflictDoNothing().returning()
+    const insertArticleTags = tagList.map((tag:string)=>{
+      return {
+        articleId : updatedArticle.id,
+        tagName : tag
+      }
+    })
+    await db.insert(articleTags).values(insertArticleTags).onConflictDoNothing().returning()
+    const particalRes = await createArticleResponsePartical(updatedArticle,userId,updatedArticle.authorId)
+    const [userInfo] : User[] = await db.select().from(users).where(eq(users.id,userId))
+    const res = {
+      article:{
+        slug : updatedArticle.slug,
+        title : updatedArticle.title,
+        description : updatedArticle.description,
+        body : updatedArticle.body,
+        tagList: tagList,
+        createdAt: updatedArticle.createdAt,
+        updatedAt: updatedArticle.updatedAt,
+        favorited: particalRes.favorited,
+        favoritesCount: particalRes.favoCount,
+        author:{
+          username: userInfo.username,
+          bio: userInfo.bio,
+          image: userInfo.image,
+          following: particalRes.following
+        }
+      }
+    }
+    return c.json(res)
+  }catch(e){
+    debagLog(e)
+  }  
+}
+
+
 const createArticleResponsePartical = async (insertedArticle:Article,userId:number,authorId:number)=> {
   let [{favoCount}] = await db.select({favoCount  : count()}).from(favorites).where(eq(favorites.articleId,insertedArticle.id))
   favoCount  = Number(favoCount)
@@ -321,3 +384,4 @@ const createArticleResponsePartical = async (insertedArticle:Article,userId:numb
     following: following
   }
 }
+

@@ -370,6 +370,19 @@ export const updateArticle = async (c: Context) => {
   }  
 }
 
+export const deleteArticle = async (c: Context) => {
+  const slug: string | undefined = c.req.param('slug')
+  try{
+    const [article] : Article[] = await db.select().from(articles).where(eq(articles.slug,String(slug)))
+    debagLog(article)
+    await db.delete(articleTags).where(eq(articleTags.articleId,article.id))
+    await db.delete(favorites).where(eq(favorites.articleId,article.id))
+    await db.delete(articles).where(eq(articles.id,article.id))
+    return c.json({message : 'delete article'})
+  }catch(e){
+    debagLog(e)
+  } 
+}
 
 const createArticleResponsePartical = async (insertedArticle:Article,userId:number,authorId:number)=> {
   let [{favoCount}] = await db.select({favoCount  : count()}).from(favorites).where(eq(favorites.articleId,insertedArticle.id))

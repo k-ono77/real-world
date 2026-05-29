@@ -34,4 +34,8 @@ router.get('/feed', articleController.getFeed);
 
 router.get('/:slug', articleController.getArticle);
 
+router.delete(
+    '/:slug',
+    articleController.deleteArticle);
+    
 export default router;

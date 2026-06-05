@@ -24,7 +24,7 @@ export const createArticle = async (c: Context) =>{
     article: Article
   }
   const articleData = await c.req.json<RequestBody>()
-  const headers : string | undefined = await c.req.header('authorization')
+  const headers : string | undefined = c.req.header('authorization')
   const decodedPayload : Payload = await createPayload(headers)
   const userId = Number(decodedPayload.id) 
   const { title, description, body, tagList } = articleData.article
@@ -432,6 +432,40 @@ export const getComments = async(c:Context) => {
   }
 }
 
+export const createComment = async(c:Context) => {
+  const slug = c.req.param('slug')
+  const headers : string | undefined = c.req.header('authorization')
+  if(!headers) return
+  const { id : userId } : Payload =  await createPayload(headers)
+  const { comment: commentData } = await c.req.json()
+  try{
+    const [article] = await db.select().from(articles).where(eq(articles.slug,String(slug)))
+    const insertComment = {
+      body:commentData.body,
+      authorId:userId,
+      articleId:article.id,
+    }
+    const [insertedComment] = await db.insert(comments).values(insertComment).returning()
+    const [author] = await db.select().from(users).where(eq(users.id,userId))
+    const res = {
+      comment: {
+        id: insertedComment.id,
+        createdAt: insertedComment.createdAt,
+        updatedAt: insertedComment.updatedAt,
+        body: insertedComment.body,
+        author: {
+          username:author.username,
+          bio:author.bio,
+          image:author.image,
+          following:false
+        }
+      }
+    }
+    return c.json(res)
+  }catch(e){
+    debagLog(e)
+  }
+}
 
 const createArticleResponsePartical = async (insertedArticle:Article,userId:number,authorId:number)=> {
   let [{favoCount}] = await db.select({favoCount  : count()}).from(favorites).where(eq(favorites.articleId,insertedArticle.id))

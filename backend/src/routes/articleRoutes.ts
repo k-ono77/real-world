@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import * as articleController from '../controllers/articleController';
 import { zValidator } from "@hono/zod-validator";
-import { createArticleSchema, updateArticleSchema } from '../schemas/articleSchema';
+import { createArticleSchema, updateArticleSchema, createCommentSchema } from '../schemas/articleSchema';
 import { formatValidationError } from '../helpers/validationHelper';
 
 const router = new Hono();
@@ -39,5 +39,14 @@ router.delete(
     articleController.deleteArticle);
     
 router.get('/:slug/comments',articleController.getComments);
+
+router.post(
+    '/:slug/comments',
+    zValidator("json", createCommentSchema, (result, c) =>{
+        if(!result.success){
+            return c.json(formatValidationError(result.error), 422)
+        }
+    }),
+    articleController.createComment);
 
 export default router

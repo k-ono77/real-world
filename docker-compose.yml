@@ -1,5 +1,4 @@
 services:
-  # 1. データベース (PostgreSQL)
   db:
     image: postgres:16
     restart: always
@@ -11,8 +10,24 @@ services:
       - "5432:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # 2. バックエンド (Hono + Drizzle)
+  db-migrate:
+    build:
+      context: .
+      dockerfile: backend.Dockerfile
+    environment:
+      DATABASE_URL: "postgres://user:password@db:5432/conduit_db"
+    command: ["npx", "drizzle-kit", "push"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: no
+
   backend:
     build:
       context: .
@@ -26,10 +41,11 @@ services:
     volumes:
       - ./backend:/app/backend
       - /app/backend/node_modules
+    command: ["npm", "run", "dev"]
     depends_on:
-      - db
+      db-migrate:
+        condition: service_completed_successfully
 
-  # 3. フロントエンド (React + Vite)
   frontend:
     build:
       context: .
@@ -44,6 +60,5 @@ services:
     depends_on:
       - backend
 
-# 全サービスで共有するボリュームの定義（一番最後に1回だけ書く）
 volumes:
   db-data:

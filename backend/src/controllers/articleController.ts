@@ -1,5 +1,5 @@
 import { db } from '../db/index.ts' 
-import { users, articleTags, tags, articles, follows, favorites } from '../db/schema.ts'
+import { users, articleTags, tags, articles, follows, favorites, comments } from '../db/schema.ts'
 import { desc, eq, inArray, count, and } from 'drizzle-orm'
 import type { Context } from 'hono'
 import slugify from 'slugify'
@@ -8,6 +8,7 @@ import { createPayload, debagLog } from '../helpers/commonHelper.js'
 import { dbErrorHandler } from '../helpers/dbHelper.js'
 import { factory } from '../helpers/factory.ts'
 import { InferSelectModel,InferInsertModel } from 'drizzle-orm'
+import { tr } from 'zod/v4/locales'
 
 export type NewFavorite = InferInsertModel<typeof favorites>
 export type Article = InferSelectModel<typeof articles>
@@ -124,7 +125,7 @@ export const getArticle = async (c : Context) => {
 export const getGlobal = async (c : Context) => {
   const favorited : string | undefined = c.req.query('favorited')
   const author : string | undefined = c.req.query('author')
-  const headers : string | undefined = await c.req.header('authorization')
+  const headers : string | undefined = c.req.header('authorization')
   const { id: userId } : Payload = await createPayload(headers)
   try{
     let authorId : number | undefined = undefined
@@ -383,6 +384,54 @@ export const deleteArticle = async (c: Context) => {
     debagLog(e)
   } 
 }
+
+export const getComments = async(c:Context) => {
+  const slug: string | undefined = c.req.param('slug')
+  const headers : string | undefined = c.req.header('authorization')
+  try{
+    const { id : userId } =  await createPayload(String(headers))
+    const [article] : Article[] = await db.select().from(articles).where(eq(articles.slug,String(slug)))
+    const commentsRow = await db.query.comments.findMany({
+      where: eq(comments.articleId,article.id),
+      columns:{
+        id: true,
+        createdAt: true,
+        updatedAt: true,
+        body: true,
+      },
+      with: {
+        author : {
+          columns:{
+            id:true,
+            username: true,
+            bio: true,
+            image: true,
+          }
+        }
+      }
+    })
+    const commentsList = []
+    for(const comment of commentsRow){
+      const follwingRow = await db.select().from(follows).where(and(eq(follows.followerId,userId),eq(follows.followingId,comment.author.id)))
+      const following = follwingRow.length > 0
+      const { id, ...authorWithoutId } = comment
+      commentsList.push({
+        ...comment,
+        author:{
+          authorWithoutId,
+          following:following
+        }
+      })
+    }
+    const res = {
+      comments: commentsList
+    }
+    return c.json(res)
+  }catch(e){
+    debagLog(e)
+  }
+}
+
 
 const createArticleResponsePartical = async (insertedArticle:Article,userId:number,authorId:number)=> {
   let [{favoCount}] = await db.select({favoCount  : count()}).from(favorites).where(eq(favorites.articleId,insertedArticle.id))

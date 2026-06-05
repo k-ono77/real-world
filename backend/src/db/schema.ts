@@ -52,6 +52,18 @@ export const follows = pgTable('follows', {
   pk:primaryKey({columns:[t.followerId,t.followingId]}),
 }));
 
+// コメント
+export const comments = pgTable('comments', {
+  id: serial('id').primaryKey(),
+  body: text('body').notNull(),
+  articleId: integer('article_id').references(() => articles.id).notNull(),
+  authorId: integer('author_id').references(() => users.id).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// ===========relations===========
+
 // articlesテーブルのリレーション
 export const articlesRelations = relations(articles, ({ one, many }) => ({
   author: one(users, {
@@ -82,6 +94,13 @@ export const followingRelations = relations(follows, ({ one }) => ({
     fields : [follows.followerId],
     references :[users.id],
     relationName : 'following' 
+  }),
+}));
+
+export const commentsRelations = relations(comments, ({ one }) => ({
+  author : one(users,{
+    fields : [comments.authorId],
+    references :[users.id],
   }),
 }));
 

@@ -38,4 +38,6 @@ router.delete(
     '/:slug',
     articleController.deleteArticle);
     
-export default router;
+router.get('/:slug/comments',articleController.getComments);
+
+export default router

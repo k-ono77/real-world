@@ -12,7 +12,7 @@ function CommentList({ triggerUpdate, updateComments }) {
   const { slug } = useParams();
 
   useEffect(() => {
-    getComments({ slug }).then(setComments).catch(console.error);
+    getComments({ slug, headers }).then(setComments).catch(console.error);
   }, [slug, triggerUpdate]);
 
   const handleClick = (commentId) => {

@@ -1,3 +1,4 @@
+import React from "react";
 function ArticleTags({ tagList }) {
   return (
     tagList?.length > 0 && (

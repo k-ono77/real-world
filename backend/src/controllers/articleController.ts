@@ -413,11 +413,11 @@ export const getComments = async (c: Context) => {
     for (const comment of commentsRow) {
       const follwingRow = await db.select().from(follows).where(and(eq(follows.followerId, userId), eq(follows.followingId, comment.author.id)))
       const following = follwingRow.length > 0
-      const { id, ...authorWithoutId } = comment
+      const { id, ...authorWithoutId } = comment.author
       commentsList.push({
         ...comment,
         author: {
-          authorWithoutId,
+          ...authorWithoutId,
           following: following
         }
       })

@@ -1,3 +1,4 @@
+import React from "react";
 import avatar from "../../assets/smiley-cyrus.jpeg";
 
 function Avatar({ alt, className, src }) {

@@ -49,4 +49,9 @@ router.post(
     }),
     articleController.createComment);
 
+router.delete(
+    '/:slug/comments/:id',
+    articleController.deleteComment
+);
+
 export default router

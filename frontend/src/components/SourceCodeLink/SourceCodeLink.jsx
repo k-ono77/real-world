@@ -1,3 +1,4 @@
+import React from "react";
 function SourceCodeLink({ left, right }) {
   const position = left ? "left" : right ? "right" : "";
 

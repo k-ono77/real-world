@@ -1,3 +1,4 @@
+import React from "react";
 import { useState } from "react";
 import AuthPageContainer from "../components/AuthPageContainer";
 import SignUpForm from "../components/SignUpForm";

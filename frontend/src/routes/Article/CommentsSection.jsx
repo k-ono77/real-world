@@ -1,3 +1,4 @@
+import React from "react";
 import { useState } from "react";
 import CommentEditor from "../../components/CommentEditor";
 import CommentList from "../../components/CommentList";

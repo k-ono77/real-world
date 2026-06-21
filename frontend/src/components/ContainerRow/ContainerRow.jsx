@@ -1,3 +1,4 @@
+import React from "react";
 function ContainerRow({ children, type }) {
   return (
     <div className={`container ${type || ""}`}>

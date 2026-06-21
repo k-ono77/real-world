@@ -1,3 +1,4 @@
+import React from "react";
 function BannerContainer({ children }) {
   return (
     <div className="banner">

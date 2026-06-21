@@ -1,3 +1,4 @@
+import React from "react";
 import ArticlesPagination from "../components/ArticlesPagination";
 import ArticlesPreview from "../components/ArticlesPreview";
 import { useFeedContext } from "../context/FeedContext";

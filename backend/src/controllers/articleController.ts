@@ -466,6 +466,15 @@ export const createComment = async (c: Context) => {
   }
 }
 
+export const deleteComment = async (c: Context) => {
+  const delCommntId = c.req.param('id')
+  const headers: string | undefined = c.req.header('authorization')
+  if (!headers) return
+  const { id: userId }: Payload = await createPayload(headers)
+  await db.delete(comments).where(and(eq(comments.id,Number(delCommntId)),eq(comments.authorId,userId))).returning()
+  return c.json({ message: 'delete comment' })
+}
+
 const createArticleResponsePartical = async (insertedArticle: Article, userId: number, authorId: number) => {
   let [{ favoCount }] = await db.select({ favoCount: count() }).from(favorites).where(eq(favorites.articleId, insertedArticle.id))
   favoCount = Number(favoCount)
